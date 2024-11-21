@@ -6,25 +6,23 @@
 
 
 <!--list of constants-->
-<constant value="0" name="STOPPED"/>
-<constant value="1" name="FORWARD"/>
-<constant value="2" name="FOLLOWLINE"/>
-<constant value="3" name="LOST"/>
-<constant value="4" name="LEFT"/>
-<constant value="5" name="RIGHT"/>
-<constant value="3800" name="SCANTHRESH"/>
+<constant value="-1" name="BC_ERROR"/>
 <constant value="1" name="BC_LEFT"/>
 <constant value="2" name="BC_RIGHT"/>
 <constant value="3" name="BC_DEAD"/>
 <constant value="0" name="BC_UNINIT"/>
-<constant value="300" name="SPEED"/>
-<constant value="450" name="LINEFOLLOW"/>
-<constant value="1" name="BC_RED"/>
-<constant value="2" name="BC_GREEN"/>
-<constant value="3" name="BC_BLUE"/>
-<constant value="1500" name="TRN_PERIOD"/>
-<constant value="2000" name="BCK_PERIOD"/>
-<constant value="6" name="HIT"/>
+<constant value="2000" name="SPEED"/>
+<constant value="4000" name="BARCODE_READ_COLOR_THRESHOLD"/>
+<constant value="2000" name="BARCODE_READ_DISTANCE"/>
+<constant value="0" name="PS_STOPPED"/>
+<constant value="1" name="PS_LOOK_AND_SCAN"/>
+<constant value="2" name="PS_ALIGN_BACK_UP"/>
+<constant value="3" name="PS_ALIGN_BARCODE"/>
+<constant value="4" name="PS_ALIGN_BARCODE_RIGHT"/>
+<constant value="5" name="PS_ALIGN_BARCODE_SCAN"/>
+<constant value="6" name="PS_TURN"/>
+<constant value="295" name="ONE_FULL_TURN_TIME"/>
+<constant value="300" name="TAPE_THRESHOLD"/>
 
 
 <!--show keywords state-->
@@ -33,191 +31,157 @@
 
 <!--node thymio-II-->
 <node nodeId="1" name="thymio-II">#VARIABLES
-var ArrayList[3] = [BC_UNINIT, BC_UNINIT, BC_UNINIT]
-var ScanArray[3] = [0,0,0]
-var hitArray1[3]
-var lights[] = [0, 0, 0] # possibility of light on or off
-var i
-var scanCounter = 0
-var on = 32
-var off = 0
-var BCstate = BC_UNINIT
-var BCcolor = BC_UNINIT
-var state = FORWARD
-var hitCount = 0
-onevent button.forward
-	callsub straight
-onevent tap
-	hitCount++
-	state = HIT
-	timer.period[0] = BCK_PERIOD
 
+var barcode_list[3] = [BC_UNINIT, BC_UNINIT, BC_UNINIT] # Values of the barcodes that have been read
+var lights[] = [0, 0, 0] # Array representing the state of the lights
+var barcode_number = 0
+var program_state = PS_STOPPED
+
+var tmp_color[] = [0, 0, 0] # Temporary variable for reading the color into
+
+# Initializes timer values
+var timer_0 = 0
+var timer_target = 0
+timer.period[0] = 1
+
+callsub stop
+
+onevent timer0
+	timer_0 += 1
+
+onevent button.forward
+	timer_0 = 0
+	program_state = PS_LOOK_AND_SCAN
 
 #Stop the program
 onevent button.backward
+	callsub stop
+
+# Directional functions
+sub forward
+	motor.left.target = SPEED
+	motor.right.target = SPEED
+	timer.period[0] = 1
+
+sub stop
 	motor.left.target = 0
 	motor.right.target = 0
+	program_state = PS_STOPPED
 	timer.period[0] = 0
-	i = 0
 
-#Go Straight
-sub straight
-	state = FORWARD
-	motor.left.target = SPEED
-	motor.right.target = SPEED
+onevent tap
+	if program_state == PS_LOOK_AND_SCAN then
+		program_state = PS_ALIGN_BACK_UP
+		timer_0 = 0
+		motor.left.target = -SPEED
+		motor.right.target = -SPEED
+	end
 
-#Reads barcode and stores in arrays
-sub readBarcode
-state = STOPPED
-motor.left.target = 0
-motor.right.target = 0
+# Main logic loop
 onevent prox
-	# Determine if the block in front is white or black based on reflected THRESHOLD
-	for i in 1:3 do
-		if prox.horizontal[i] > SCANTHRESH then
-			lights[i-1] = 32
+
+	# If we are looking for the barcode
+	if program_state == PS_LOOK_AND_SCAN then
+		callsub forward
+		if prox.horizontal[2] > BARCODE_READ_DISTANCE then
+			program_state = PS_ALIGN_BARCODE
+			motor.left.target = -SPEED
+			motor.right.target = SPEED
+		end
+
+	elseif program_state == PS_ALIGN_BACK_UP then
+		if timer_0 > 15 then
+			program_state = PS_ALIGN_BARCODE
+			motor.left.target = -SPEED
+			motor.right.target = SPEED
+		end
+
+	# Goes to left of tape
+	elseif program_state == PS_ALIGN_BARCODE then
+
+		if prox.ground.delta[0] &lt; TAPE_THRESHOLD then
+			motor.left.target = -SPEED
+			motor.right.target = SPEED
 		else
-			lights[i-1] = 0
+			program_state = PS_ALIGN_BARCODE_RIGHT
+			motor.left.target = SPEED
+			motor.right.target = -SPEED
+			timer_0 = 0
+		end
+
+	# Goes to right of tape (and times it)
+	elseif program_state == PS_ALIGN_BARCODE_RIGHT then
+		if prox.ground.delta[1] > TAPE_THRESHOLD then
+			timer_target = timer_0 / 2
+			timer_0 = 0
+			motor.left.target = -SPEED
+			motor.right.target = SPEED
+			program_state = PS_ALIGN_BARCODE_SCAN
+		end
+
+	# Goes half way back
+	elseif program_state == PS_ALIGN_BARCODE_SCAN then
+		# Checks if the timer expired (the timer for probably being in the middle)
+		# 50 is a constant just for consistency
+		if timer_0 > timer_target - 50 then
+			# Here is where we read the barcode
+
+			# Sets tmp_color to the barcode currently being read
+			if prox.horizontal[1] > BARCODE_READ_COLOR_THRESHOLD then
+				tmp_color[0] = 1
+			else
+				tmp_color[0] = 0
+			end
+
+			if prox.horizontal[2] > BARCODE_READ_COLOR_THRESHOLD then
+				tmp_color[1] = 1
+			else
+				tmp_color[1] = 0
+			end
+
+			if prox.horizontal[3] > BARCODE_READ_COLOR_THRESHOLD then
+				tmp_color[2] = 1
+			else
+				tmp_color[2] = 0
+			end
+
+			# Decodes the barcode
+			if tmp_color[0] == 1 and tmp_color[1] == 0 and tmp_color[2] == 0 then
+				barcode_list[barcode_number] = BC_LEFT
+			elseif tmp_color[0] == 0 and tmp_color[1] == 0 and tmp_color[2] == 1 then
+				barcode_list[barcode_number] = BC_RIGHT
+			elseif tmp_color[0] == 1 and tmp_color[1] == 0 and tmp_color[2] == 1 then
+				barcode_list[barcode_number] = BC_DEAD
+			else
+				barcode_list[barcode_number] = BC_ERROR
+			end
+
+			# Updates the barcode number (if we aren't at a dead end)
+			if barcode_list[barcode_number] != BC_DEAD then
+				barcode_number += 1
+			end
+
+			program_state = PS_TURN
+			timer_0 = 0
+		end
+	elseif program_state == PS_TURN then
+		# Checks the previous barcode value
+		if barcode_list[barcode_number - 1] == BC_LEFT then
+			motor.left.target = -SPEED
+			motor.right.target = SPEED
+		elseif barcode_list[barcode_number - 1] == BC_RIGHT then
+			motor.left.target = SPEED
+			motor.right.target = -SPEED
+		else
+			# If this gets called, we done f---ed up
+			callsub stop
+		end
+
+		if timer_0 > ONE_FULL_TURN_TIME then
+			program_state = PS_LOOK_AND_SCAN
 		end
 	end
 
-	ScanArray = [lights[1],lights[2],lights[0]]
-
-	callsub decodeBarcode
-	#make if statements to make the possible results into a variable
-	#Display Leds based on values and answers from for loop
-	#call leds.circle(lights[1], lights[2], 0, 0, 0, 0, 0, lights[0])
-#Decode the meaning and shine lights
-sub decodeBarcode
-#If hits first or second block
-if  hitCount == 1 or hitCount == 2 then
-	if  ScanArray[0] == 0 and ScanArray[1] == 32 and ScanArray[2] == 0 then
-			BCstate = BC_RIGHT
-		end
-
-	if  ScanArray[0] == 0 and ScanArray[1] == 0 and ScanArray[2] == 32 then
-			BCstate = BC_LEFT
-		end
-
-end
-if  hitCount == 3 then
-	if  ScanArray[0] == 0 and ScanArray[1] == 32 and ScanArray[2] == 0 then
-			BCstate = BC_RED
-		end
-
-	if  ScanArray[0] == 0 and ScanArray[1] == 0 and ScanArray[2] == 32 then
-			BCstate = BC_GREEN
-		end
-
-	if ScanArray[0] == 32 and ScanArray[1] == 0 and ScanArray[2] == 0 then
-			BCstate = BC_BLUE
-	end
-end
-
-	callsub HIT
-
-sub HIT
-	if  hitCount == 1 then
-		callsub Hit1
-	end
-
-	if hitCount == 2 then
-		callsub Hit2
-
-	end
-
-	if  hitCount == 3 then
-		callsub Hit3
-
-	end
-
-
-
-sub Hit1
-	ArrayList[0] = BCstate
-	if  ArrayList[0] == BC_RIGHT then
-		state = RIGHT
-		timer.period[0] = TRN_PERIOD
-		#Turn right and then straight until it hits
-	end
-
-	if  ArrayList[0] == BC_LEFT then
-		state = LEFT
-		timer.period[0] = TRN_PERIOD
-		#Turn left and then straight until it hits
-	end
-
-
-sub Hit2
-	ArrayList[1] = BCstate
-	if  ArrayList[0] == BC_RIGHT then
-		state = LEFT
-		timer.period[0] = TRN_PERIOD
-		#Turn left and then straight until hits
-	end
-
-	if  ArrayList[0] == BC_LEFT then
-		state = RIGHT
-		timer.period[0] = TRN_PERIOD
-		#Turn right and then straight until hits
-	end
-
-
-sub Hit3
-	ArrayList[2] = BCstate
-	if  ArrayList[0] == BC_RIGHT then
-		state = LEFT
-		timer.period[0] = TRN_PERIOD
-		#Turn left and then straight until hits
-	end
-
-	if  ArrayList[0] == BC_LEFT then
-		state = RIGHT
-		timer.period[0] = TRN_PERIOD
-		#Turn right and then straight until hits
-	end
-onevent timer0
-	if  state == RIGHT then
-		motor.left.target = SPEED
-		motor.right.target = -SPEED
-		timer.period[0] = 0
-		callsub straight
-	end
-	if  state == LEFT then
-		motor.left.target = -SPEED
-		motor.right.target = SPEED
-		timer.period[0] = 0
-		callsub straight
-	end
-	if  state == HIT then
-		motor.left.target = -SPEED
-		motor.right.target = -SPEED
-		callsub readBarcode
-	end
-#Go Left
-sub left
-	state = LEFT
-	motor.left.target = 0
-	motor.right.target = SPEED
-#Go Right
-sub right
-	state = RIGHT
-	motor.left.target = SPEED
-	motor.right.target = 0
-#Go into LineFollow
-sub linef
-# if movint straight and sensing black line
-if state == LEFT and prox.ground.delta[0] &lt; LINEFOLLOW then
-	motor.left.target = SPEED/2
-	motor.right.target = 0
-	state = RIGHT
-end
-# if moving right and sensing black line
-if state == RIGHT and prox.ground.delta[0] &lt; LINEFOLLOW then
-	motor.left.target = 0
-	motor.right.target = SPEED/2
-	state = LEFT
-end
 </node>
 
 
