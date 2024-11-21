@@ -51,21 +51,21 @@ onevent tap
 	hitCount++
 	state = HIT
 	timer.period[0] = BCK_PERIOD
-	
-	
+
+
 #Stop the program
 onevent button.backward
 	motor.left.target = 0
 	motor.right.target = 0
 	timer.period[0] = 0
 	i = 0
-	
+
 #Go Straight
 sub straight
 	state = FORWARD
 	motor.left.target = SPEED
 	motor.right.target = SPEED
-	
+
 #Reads barcode and stores in arrays
 sub readBarcode
 state = STOPPED
@@ -80,9 +80,9 @@ onevent prox
 			lights[i-1] = 0
 		end
 	end
-	
+
 	ScanArray = [lights[1],lights[2],lights[0]]
-	
+
 	callsub decodeBarcode
 	#make if statements to make the possible results into a variable
 	#Display Leds based on values and answers from for loop
@@ -94,45 +94,45 @@ if  hitCount == 1 or hitCount == 2 then
 	if  ScanArray[0] == 0 and ScanArray[1] == 32 and ScanArray[2] == 0 then
 			BCstate = BC_RIGHT
 		end
-	
+
 	if  ScanArray[0] == 0 and ScanArray[1] == 0 and ScanArray[2] == 32 then
 			BCstate = BC_LEFT
 		end
-	
+
 end
 if  hitCount == 3 then
 	if  ScanArray[0] == 0 and ScanArray[1] == 32 and ScanArray[2] == 0 then
 			BCstate = BC_RED
 		end
-		
+
 	if  ScanArray[0] == 0 and ScanArray[1] == 0 and ScanArray[2] == 32 then
 			BCstate = BC_GREEN
-		end	
-		
+		end
+
 	if ScanArray[0] == 32 and ScanArray[1] == 0 and ScanArray[2] == 0 then
 			BCstate = BC_BLUE
 	end
 end
-		
+
 	callsub HIT
-	
+
 sub HIT
 	if  hitCount == 1 then
 		callsub Hit1
 	end
-	
+
 	if hitCount == 2 then
 		callsub Hit2
-		
+
 	end
-	
+
 	if  hitCount == 3 then
 		callsub Hit3
-		
+
 	end
-	
-	
-	
+
+
+
 sub Hit1
 	ArrayList[0] = BCstate
 	if  ArrayList[0] == BC_RIGHT then
@@ -140,14 +140,14 @@ sub Hit1
 		timer.period[0] = TRN_PERIOD
 		#Turn right and then straight until it hits
 	end
-	
+
 	if  ArrayList[0] == BC_LEFT then
 		state = LEFT
 		timer.period[0] = TRN_PERIOD
 		#Turn left and then straight until it hits
 	end
-	
-	
+
+
 sub Hit2
 	ArrayList[1] = BCstate
 	if  ArrayList[0] == BC_RIGHT then
@@ -155,14 +155,14 @@ sub Hit2
 		timer.period[0] = TRN_PERIOD
 		#Turn left and then straight until hits
 	end
-	
+
 	if  ArrayList[0] == BC_LEFT then
 		state = RIGHT
 		timer.period[0] = TRN_PERIOD
 		#Turn right and then straight until hits
 	end
-	
-	
+
+
 sub Hit3
 	ArrayList[2] = BCstate
 	if  ArrayList[0] == BC_RIGHT then
@@ -170,7 +170,7 @@ sub Hit3
 		timer.period[0] = TRN_PERIOD
 		#Turn left and then straight until hits
 	end
-	
+
 	if  ArrayList[0] == BC_LEFT then
 		state = RIGHT
 		timer.period[0] = TRN_PERIOD
@@ -199,7 +199,7 @@ sub left
 	state = LEFT
 	motor.left.target = 0
 	motor.right.target = SPEED
-#Go Right	
+#Go Right
 sub right
 	state = RIGHT
 	motor.left.target = SPEED
@@ -207,16 +207,16 @@ sub right
 #Go into LineFollow
 sub linef
 # if movint straight and sensing black line
- if state == LEFT and prox.ground.delta[0] &lt; LINEFOLLOW then
-    motor.left.target = SPEED/2
-    motor.right.target = 0
-    state = RIGHT
+if state == LEFT and prox.ground.delta[0] &lt; LINEFOLLOW then
+	motor.left.target = SPEED/2
+	motor.right.target = 0
+	state = RIGHT
 end
 # if moving right and sensing black line
- if state == RIGHT and prox.ground.delta[0] &lt; LINEFOLLOW then
-    motor.left.target = 0
-    motor.right.target = SPEED/2
-    state = LEFT
+if state == RIGHT and prox.ground.delta[0] &lt; LINEFOLLOW then
+	motor.left.target = 0
+	motor.right.target = SPEED/2
+	state = LEFT
 end
 </node>
 
