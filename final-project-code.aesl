@@ -7,10 +7,10 @@
 
 <!--list of constants-->
 <constant value="-1" name="BC_ERROR"/>
+<constant value="0" name="BC_UNINIT"/>
 <constant value="1" name="BC_LEFT"/>
 <constant value="2" name="BC_RIGHT"/>
 <constant value="3" name="BC_DEAD"/>
-<constant value="0" name="BC_UNINIT"/>
 <constant value="2000" name="SPEED"/>
 <constant value="4000" name="BARCODE_READ_COLOR_THRESHOLD"/>
 <constant value="2000" name="BARCODE_READ_DISTANCE"/>
@@ -154,6 +154,10 @@ onevent prox
 				barcode_list[barcode_number] = BC_DEAD
 			else
 				barcode_list[barcode_number] = BC_ERROR
+			end
+
+			if barcode_list[barcode_number] == BC_ERROR then
+				callsub stop
 			end
 
 			# Updates the barcode number (if we aren't at a dead end)
