@@ -11,7 +11,7 @@
 <constant value="1" name="BC_LEFT"/>
 <constant value="2" name="BC_RIGHT"/>
 <constant value="3" name="BC_DEAD"/>
-<constant value="2000" name="SPEED"/>
+<constant value="300" name="SPEED"/>
 <constant value="4000" name="BARCODE_READ_COLOR_THRESHOLD"/>
 <constant value="2000" name="BARCODE_READ_DISTANCE"/>
 <constant value="0" name="PS_STOPPED"/>
