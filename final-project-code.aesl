@@ -11,7 +11,10 @@
 <constant value="1" name="BC_LEFT"/>
 <constant value="2" name="BC_RIGHT"/>
 <constant value="3" name="BC_DEAD"/>
+<<<<<<< HEAD
 <constant name="BC_BLACK_WHITE_BLACK" value="4"/>
+=======
+>>>>>>> 0c04809 ( implemted line follow)
 <constant value="200" name="SPEED"/>
 <constant value="4000" name="BARCODE_READ_COLOR_THRESHOLD"/>
 <constant value="2500" name="BARCODE_READ_DISTANCE"/>
@@ -27,8 +30,11 @@
 <constant value="200" name="PS_LINE_FOLLOW"/>
 <constant value="201" name="PS_LINEFOLLOW_LEFT"/>
 <constant value="202" name="PS_LINEFOLLOW_RIGHT"/>
+<<<<<<< HEAD
 <constant name="PS_CROSS_LINES" value="301"/>
 <constant name="PS_SHOW_COLORS" value="302"/>
+=======
+>>>>>>> 0c04809 ( implemted line follow)
 
 
 <!--show keywords state-->
@@ -59,11 +65,18 @@ onevent timer0
 
 onevent button.forward
 	timer_0 = 0
+<<<<<<< HEAD
 	
 	program_state = PS_LOOK_AND_SCAN
 	callsub forward
 
 # Stop the program
+=======
+	callsub forward
+	program_state = PS_LINEFOLLOW_LEFT
+	
+#Stop the program
+>>>>>>> 0c04809 ( implemted line follow)
 onevent button.backward
 	callsub stop
 
@@ -198,6 +211,7 @@ onevent prox
 		if timer_0 > ONE_FULL_TURN_TIME then
 			program_state = PS_LOOK_AND_SCAN
 		end
+<<<<<<< HEAD
 
 	elseif program_state == PS_CROSS_LINES then
 
@@ -287,6 +301,18 @@ onevent prox
 	end
 >>>>>>> 77ee840 (Implemented cross lines)
 
+=======
+	   elseif program_state == PS_LINEFOLLOW_LEFT and  prox.ground.delta[0] >= TAPE_THRESHOLD then
+	      program_state = PS_LINEFOLLOW_RIGHT                         
+	      motor.left.target = SPEED            
+	      motor.right.target = 0
+	      if prox.horizontal[2] > BARCODE_READ_DISTANCE then
+				program_state = PS_ALIGN_BARCODE
+				motor.left.target = -SPEED
+				motor.right.target = SPEED
+		end
+
+>>>>>>> 0c04809 ( implemted line follow)
 	   elseif program_state == PS_LINEFOLLOW_RIGHT and prox.ground.delta[0] &lt; TAPE_THRESHOLD then
 	      program_state = PS_LINEFOLLOW_LEFT                        
 	      motor.left.target = 0                  
