@@ -11,6 +11,7 @@
 <constant value="1" name="BC_LEFT"/>
 <constant value="2" name="BC_RIGHT"/>
 <constant value="3" name="BC_DEAD"/>
+<constant name="BC_BLACK_WHITE_BLACK" value="4"/>
 <constant value="200" name="SPEED"/>
 <constant value="4000" name="BARCODE_READ_COLOR_THRESHOLD"/>
 <constant value="2500" name="BARCODE_READ_DISTANCE"/>
@@ -26,6 +27,8 @@
 <constant value="200" name="PS_LINE_FOLLOW"/>
 <constant value="201" name="PS_LINEFOLLOW_LEFT"/>
 <constant value="202" name="PS_LINEFOLLOW_RIGHT"/>
+<constant name="PS_CROSS_LINES" value="301"/>
+<constant name="PS_SHOW_COLORS" value="302"/>
 
 
 <!--show keywords state-->
@@ -33,12 +36,14 @@
 
 
 <!--node thymio-II-->
-<node nodeId="1" name="thymio-II">#VARIABLES
+<node name="thymio-II" nodeId="1">#VARIABLES
 
 var barcode_list[3] = [BC_UNINIT, BC_UNINIT, BC_UNINIT] # Values of the barcodes that have been read
 var lights[] = [0, 0, 0] # Array representing the state of the lights
 var barcode_number = 0
 var program_state = PS_STOPPED
+
+var cross_line_count = 0 # Value for counting the lines that we crossed
 
 var tmp_color[] = [0, 0, 0] # Temporary variable for reading the color into
 
@@ -54,10 +59,11 @@ onevent timer0
 
 onevent button.forward
 	timer_0 = 0
-	callsub forward
-	program_state = PS_LINEFOLLOW_LEFT
 	
-#Stop the program
+	program_state = PS_LOOK_AND_SCAN
+	callsub forward
+
+# Stop the program
 onevent button.backward
 	callsub stop
 
@@ -156,6 +162,8 @@ onevent prox
 				barcode_list[barcode_number] = BC_RIGHT
 			elseif tmp_color[0] == 1 and tmp_color[1] == 0 and tmp_color[2] == 1 then
 				barcode_list[barcode_number] = BC_DEAD
+			elseif tmp_color[0] == 0 and tmp_color[1] == 1 and tmp_color[2] == 0 then
+				barcode_list[barcode_number] = BC_BLACK_WHITE_BLACK
 			else
 				barcode_list[barcode_number] = BC_ERROR
 			end
@@ -171,7 +179,9 @@ onevent prox
 
 			program_state = PS_TURN
 			timer_0 = 0
+
 		end
+
 	elseif program_state == PS_TURN then
 		# Checks the previous barcode value
 		if barcode_list[barcode_number - 1] == BC_LEFT then
@@ -197,6 +207,46 @@ onevent prox
 				motor.left.target = -SPEED
 				motor.right.target = SPEED
 		end
+
+	elseif program_state == PS_CROSS_LINES then
+
+		# Basically if cross_line_count is odd, we are on the tape
+		# If it is even, then we are off the tape.
+		# This way everything can be done without extra variables and can be handled in a simple way.
+
+		if cross_line_count % 2 == 0 and prox.ground.delta[0] &lt; TAPE_THRESHOLD then
+			cross_line_count += 1
+		elseif cross_line_count % 2 == 1 and prox.ground.delta[0] > TAPE_THRESHOLD then
+			cross_line_count += 1
+		end
+
+		if cross_line_count >= 6 then
+		program_state = PS_SHOW_COLORS
+
+			timer_0 = 0
+			motor.left.target = 0
+			motor.right.target = 0
+		end
+
+	elseif program_state == PS_SHOW_COLORS then
+
+		# Stops after 5s
+		if timer_0 > 5000 then
+			callsub stop
+		end
+
+		if barcode_list[2] == BC_LEFT then
+			call leds.top(32, 0, 0)
+		elseif barcode_list[2] == BC_RIGHT then
+			call leds.top(0, 32, 0)
+		elseif barcode_list[2] == BC_BLACK_WHITE_BLACK then
+			call leds.top(0, 0, 32)
+		else
+			call leds.top(32, 32, 32)
+		end
+
+	end
+>>>>>>> 77ee840 (Implemented cross lines)
 
 	   elseif program_state == PS_LINEFOLLOW_RIGHT and prox.ground.delta[0] &lt; TAPE_THRESHOLD then
 	      program_state = PS_LINEFOLLOW_LEFT                        
