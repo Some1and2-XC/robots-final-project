@@ -6,27 +6,27 @@
 
 
 <!--list of constants-->
-<constant value="-1" name="BC_ERROR"/>
-<constant value="0" name="BC_UNINIT"/>
-<constant value="1" name="BC_LEFT"/>
-<constant value="2" name="BC_RIGHT"/>
-<constant value="3" name="BC_DEAD"/>
+<constant name="BC_ERROR" value="-1"/>
+<constant name="BC_UNINIT" value="0"/>
+<constant name="BC_LEFT" value="1"/>
+<constant name="BC_RIGHT" value="2"/>
+<constant name="BC_DEAD" value="3"/>
 <constant name="BC_BLACK_WHITE_BLACK" value="4"/>
-<constant value="200" name="SPEED"/>
-<constant value="4000" name="BARCODE_READ_COLOR_THRESHOLD"/>
-<constant value="2500" name="BARCODE_READ_DISTANCE"/>
-<constant value="0" name="PS_STOPPED"/>
-<constant value="1" name="PS_LOOK_AND_SCAN"/>
-<constant value="2" name="PS_ALIGN_BACK_UP"/>
-<constant value="3" name="PS_ALIGN_BARCODE"/>
-<constant value="4" name="PS_ALIGN_BARCODE_RIGHT"/>
-<constant value="5" name="PS_ALIGN_BARCODE_SCAN"/>
-<constant value="6" name="PS_TURN"/>
-<constant value="295" name="ONE_FULL_TURN_TIME"/>
-<constant value="300" name="TAPE_THRESHOLD"/>
-<constant value="200" name="PS_LINE_FOLLOW"/>
-<constant value="201" name="PS_LINEFOLLOW_LEFT"/>
-<constant value="202" name="PS_LINEFOLLOW_RIGHT"/>
+<constant name="SPEED" value="200"/>
+<constant name="BARCODE_READ_COLOR_THRESHOLD" value="4000"/>
+<constant name="BARCODE_READ_DISTANCE" value="2500"/>
+<constant name="PS_STOPPED" value="0"/>
+<constant name="PS_LOOK_AND_SCAN" value="1"/>
+<constant name="PS_ALIGN_BACK_UP" value="2"/>
+<constant name="PS_ALIGN_BARCODE" value="3"/>
+<constant name="PS_ALIGN_BARCODE_RIGHT" value="4"/>
+<constant name="PS_ALIGN_BARCODE_SCAN" value="5"/>
+<constant name="PS_TURN" value="6"/>
+<constant name="ONE_FULL_TURN_TIME" value="295"/>
+<constant name="TAPE_THRESHOLD" value="300"/>
+<constant name="PS_LINE_FOLLOW" value="200"/>
+<constant name="PS_LINEFOLLOW_LEFT" value="201"/>
+<constant name="PS_LINEFOLLOW_RIGHT" value="202"/>
 <constant name="PS_CROSS_LINES" value="301"/>
 <constant name="PS_SHOW_COLORS" value="302"/>
 
