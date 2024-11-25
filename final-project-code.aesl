@@ -13,7 +13,7 @@
 <constant value="3" name="BC_DEAD"/>
 <constant value="300" name="SPEED"/>
 <constant value="4000" name="BARCODE_READ_COLOR_THRESHOLD"/>
-<constant value="2000" name="BARCODE_READ_DISTANCE"/>
+<constant value="4000" name="BARCODE_READ_DISTANCE"/>
 <constant value="0" name="PS_STOPPED"/>
 <constant value="1" name="PS_LOOK_AND_SCAN"/>
 <constant value="2" name="PS_ALIGN_BACK_UP"/>
@@ -21,7 +21,7 @@
 <constant value="4" name="PS_ALIGN_BARCODE_RIGHT"/>
 <constant value="5" name="PS_ALIGN_BARCODE_SCAN"/>
 <constant value="6" name="PS_TURN"/>
-<constant value="295" name="ONE_FULL_TURN_TIME"/>
+<constant value="400" name="ONE_FULL_TURN_TIME"/>
 <constant value="300" name="TAPE_THRESHOLD"/>
 
 
@@ -168,25 +168,44 @@ onevent prox
 			program_state = PS_TURN
 			timer_0 = 0
 		end
+		
 	elseif program_state == PS_TURN then
-		# Checks the previous barcode value
-		if barcode_list[barcode_number - 1] == BC_LEFT then
-			motor.left.target = -SPEED
-			motor.right.target = SPEED
-		elseif barcode_list[barcode_number - 1] == BC_RIGHT then
-			motor.left.target = SPEED
+		# Decides where to turn if first barcode = left
+		# Increments counter after the third barcode is scanned so that robot knows where it is 
+		if (barcode_list[0] == BC_LEFT and barcode_number == 1) or (barcode_list[0] == BC_LEFT and barcode_number == 4) then
+			motor.left.target  = -SPEED
+			motor.right.target =  SPEED
+		elseif (barcode_list[0] == BC_LEFT and barcode_number == 2) or (barcode_list[0] == BC_LEFT and barcode_number == 3) then
+			motor.left.target  =  SPEED
 			motor.right.target = -SPEED
+			barcode_number = 4
+			
+			
+		# Decides where to turn if first barcode = right
+		elseif (barcode_list[0] == BC_RIGHT and barcode_number == 1) or  (barcode_list[0] == BC_RIGHT and barcode_number == 4) then
+			motor.left.target  =  SPEED
+			motor.right.target = -SPEED
+		elseif (barcode_list[0] == BC_RIGHT and barcode_number == 2) or (barcode_list[0] == BC_RIGHT and barcode_number == 3) then
+			motor.left.target  = -SPEED
+			motor.right.target =  SPEED
+			barcode_number = 4
+					
+			
 		else
 			# If this gets called, we done f---ed up
 			callsub stop
 		end
 
-		if timer_0 > ONE_FULL_TURN_TIME then
+		if timer_0 > ONE_FULL_TURN_TIME and barcode_number &lt;= 3 then
 			program_state = PS_LOOK_AND_SCAN
 		end
+		
+		#if  timer_0 > ONE_FULL_TURN_TIME and barcode_number == 4 then
+		#	program_state = PS_CROSS_LINES
+		#end
+		
 	end
-
-</node>
+	</node>
 
 
 </network>
