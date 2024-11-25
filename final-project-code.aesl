@@ -14,7 +14,7 @@
 <constant name="BC_BLACK_WHITE_BLACK" value="4"/>
 <constant name="SPEED" value="200"/>
 <constant name="BARCODE_READ_COLOR_THRESHOLD" value="4000"/>
-<constant name="BARCODE_READ_DISTANCE" value="2500"/>
+<constant name="BARCODE_READ_DISTANCE" value="2750"/>
 <constant name="PS_STOPPED" value="0"/>
 <constant name="PS_LOOK_AND_SCAN" value="1"/>
 <constant name="PS_ALIGN_BACK_UP" value="2"/>
@@ -22,13 +22,13 @@
 <constant name="PS_ALIGN_BARCODE_RIGHT" value="4"/>
 <constant name="PS_ALIGN_BARCODE_SCAN" value="5"/>
 <constant name="PS_TURN" value="6"/>
-<constant name="ONE_FULL_TURN_TIME" value="295"/>
-<constant name="TAPE_THRESHOLD" value="300"/>
 <constant name="PS_LINE_FOLLOW" value="200"/>
 <constant name="PS_LINEFOLLOW_LEFT" value="201"/>
 <constant name="PS_LINEFOLLOW_RIGHT" value="202"/>
 <constant name="PS_CROSS_LINES" value="301"/>
 <constant name="PS_SHOW_COLORS" value="302"/>
+<constant name="ONE_FULL_TURN_TIME" value="700"/>
+<constant name="TAPE_THRESHOLD" value="300"/>
 
 
 <!--show keywords state-->
@@ -59,7 +59,7 @@ onevent timer0
 
 onevent button.forward
     timer_0 = 0
-    
+
     program_state = PS_LOOK_AND_SCAN
     callsub forward
 
@@ -93,6 +93,11 @@ onevent prox
     # If we are looking for the barcode
     if program_state == PS_LOOK_AND_SCAN then
         callsub forward
+
+        if prox.ground.delta[0] &lt; TAPE_THRESHOLD then
+            program_state = PS_LINEFOLLOW_RIGHT
+        end
+
         if prox.horizontal[2] > BARCODE_READ_DISTANCE then
             program_state = PS_ALIGN_BARCODE
             motor.left.target = -SPEED
@@ -274,8 +279,8 @@ onevent prox
         end
 
     elseif program_state == PS_LINEFOLLOW_LEFT and  prox.ground.delta[0] >= TAPE_THRESHOLD then
-        program_state = PS_LINEFOLLOW_RIGHT                         
-        motor.left.target = SPEED            
+        program_state = PS_LINEFOLLOW_RIGHT
+        motor.left.target = SPEED
         motor.right.target = 0
         if prox.horizontal[2] > BARCODE_READ_DISTANCE then
             program_state = PS_ALIGN_BARCODE
@@ -284,15 +289,15 @@ onevent prox
         end
 
     elseif program_state == PS_LINEFOLLOW_RIGHT and prox.ground.delta[0] &lt; TAPE_THRESHOLD then
-        program_state = PS_LINEFOLLOW_LEFT                        
-        motor.left.target = 0                  
+        program_state = PS_LINEFOLLOW_LEFT
+        motor.left.target = 0
         motor.right.target = SPEED
         if prox.horizontal[2] > BARCODE_READ_DISTANCE then
             program_state = PS_ALIGN_BARCODE
             motor.left.target = -SPEED
             motor.right.target = SPEED
         end
-    end 
+    end
 </node>
 
 
