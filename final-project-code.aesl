@@ -6,23 +6,26 @@
 
 
 <!--list of constants-->
-<constant value="-1" name="BC_ERROR"/>
-<constant value="0" name="BC_UNINIT"/>
-<constant value="1" name="BC_LEFT"/>
-<constant value="2" name="BC_RIGHT"/>
-<constant value="3" name="BC_DEAD"/>
-<constant value="300" name="SPEED"/>
-<constant value="4000" name="BARCODE_READ_COLOR_THRESHOLD"/>
-<constant value="2000" name="BARCODE_READ_DISTANCE"/>
-<constant value="0" name="PS_STOPPED"/>
-<constant value="1" name="PS_LOOK_AND_SCAN"/>
-<constant value="2" name="PS_ALIGN_BACK_UP"/>
-<constant value="3" name="PS_ALIGN_BARCODE"/>
-<constant value="4" name="PS_ALIGN_BARCODE_RIGHT"/>
-<constant value="5" name="PS_ALIGN_BARCODE_SCAN"/>
-<constant value="6" name="PS_TURN"/>
-<constant value="295" name="ONE_FULL_TURN_TIME"/>
-<constant value="300" name="TAPE_THRESHOLD"/>
+<constant name="BC_ERROR" value="-1"/>
+<constant name="BC_UNINIT" value="0"/>
+<constant name="BC_LEFT" value="1"/>
+<constant name="BC_RIGHT" value="2"/>
+<constant name="BC_DEAD" value="3"/>
+<constant name="BC_BLACK_WHITE_BLACK" value="4"/>
+<constant name="SPEED" value="300"/>
+<constant name="BARCODE_READ_COLOR_THRESHOLD" value="4000"/>
+<constant name="BARCODE_READ_DISTANCE" value="2000"/>
+<constant name="PS_STOPPED" value="0"/>
+<constant name="PS_LOOK_AND_SCAN" value="1"/>
+<constant name="PS_ALIGN_BACK_UP" value="2"/>
+<constant name="PS_ALIGN_BARCODE" value="3"/>
+<constant name="PS_ALIGN_BARCODE_RIGHT" value="4"/>
+<constant name="PS_ALIGN_BARCODE_SCAN" value="5"/>
+<constant name="PS_TURN" value="6"/>
+<constant name="PS_CROSS_LINES" value="301"/>
+<constant name="PS_SHOW_COLORS" value="302"/>
+<constant name="ONE_FULL_TURN_TIME" value="500"/>
+<constant name="TAPE_THRESHOLD" value="300"/>
 
 
 <!--show keywords state-->
@@ -30,12 +33,14 @@
 
 
 <!--node thymio-II-->
-<node nodeId="1" name="thymio-II">#VARIABLES
+<node name="thymio-II" nodeId="1">#VARIABLES
 
 var barcode_list[3] = [BC_UNINIT, BC_UNINIT, BC_UNINIT] # Values of the barcodes that have been read
 var lights[] = [0, 0, 0] # Array representing the state of the lights
 var barcode_number = 0
 var program_state = PS_STOPPED
+
+var cross_line_count = 0 # Value for counting the lines that we crossed
 
 var tmp_color[] = [0, 0, 0] # Temporary variable for reading the color into
 
@@ -52,8 +57,9 @@ onevent timer0
 onevent button.forward
 	timer_0 = 0
 	program_state = PS_LOOK_AND_SCAN
+	callsub forward
 
-#Stop the program
+# Stop the program
 onevent button.backward
 	callsub stop
 
@@ -152,6 +158,8 @@ onevent prox
 				barcode_list[barcode_number] = BC_RIGHT
 			elseif tmp_color[0] == 1 and tmp_color[1] == 0 and tmp_color[2] == 1 then
 				barcode_list[barcode_number] = BC_DEAD
+			elseif tmp_color[0] == 0 and tmp_color[1] == 1 and tmp_color[2] == 0 then
+				barcode_list[barcode_number] = BC_BLACK_WHITE_BLACK
 			else
 				barcode_list[barcode_number] = BC_ERROR
 			end
@@ -167,7 +175,9 @@ onevent prox
 
 			program_state = PS_TURN
 			timer_0 = 0
+
 		end
+
 	elseif program_state == PS_TURN then
 		# Checks the previous barcode value
 		if barcode_list[barcode_number - 1] == BC_LEFT then
@@ -184,6 +194,44 @@ onevent prox
 		if timer_0 > ONE_FULL_TURN_TIME then
 			program_state = PS_LOOK_AND_SCAN
 		end
+
+	elseif program_state == PS_CROSS_LINES then
+
+		# Basically if cross_line_count is odd, we are on the tape
+		# If it is even, then we are off the tape.
+		# This way everything can be done without extra variables and can be handled in a simple way.
+
+		if cross_line_count % 2 == 0 and prox.ground.delta[0] &lt; TAPE_THRESHOLD then
+			cross_line_count += 1
+		elseif cross_line_count % 2 == 1 and prox.ground.delta[0] > TAPE_THRESHOLD then
+			cross_line_count += 1
+		end
+
+		if cross_line_count >= 6 then
+			program_state = PS_SHOW_COLORS
+
+			timer_0 = 0
+			motor.left.target = 0
+			motor.right.target = 0
+		end
+
+	elseif program_state == PS_SHOW_COLORS then
+
+		# Stops after 5s
+		if timer_0 > 5000 then
+			callsub stop
+		end
+
+		if barcode_list[2] == BC_LEFT then
+			call leds.top(32, 0, 0)
+		elseif barcode_list[2] == BC_RIGHT then
+			call leds.top(0, 32, 0)
+		elseif barcode_list[2] == BC_BLACK_WHITE_BLACK then
+			call leds.top(0, 0, 32)
+		else
+			call leds.top(32, 32, 32)
+		end
+
 	end
 
 </node>
