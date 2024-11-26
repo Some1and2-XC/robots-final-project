@@ -20,27 +20,20 @@
 <constant value="3" name="PS_ALIGN_BARCODE"/>
 <constant value="4" name="PS_ALIGN_BARCODE_RIGHT"/>
 <constant value="5" name="PS_ALIGN_BARCODE_SCAN"/>
-<constant value="3000" name="HIT_CORNER_TURN_AMOUNT"/>
 <constant value="300" name="TAPE_THRESHOLD"/>
 <constant value="201" name="PS_LINEFOLLOW_RIGHT"/>
 <constant value="202" name="PS_LINEFOLLOW_LEFT"/>
 <constant value="4" name="BC_BLACK_WHITE_BLACK"/>
 <constant value="301" name="PS_CROSS_LINES"/>
 <constant value="302" name="PS_SHOW_COLORS"/>
-<constant value="303" name="PS_CROSS_LINES_AVOID_WALL"/>
-<constant value="401" name="PS_MVMT_HIT_CORNER"/>
-<constant value="402" name="PS_MVMT_BOUNDARY_AVOID"/>
 <constant value="7" name="PS_ALIGN_WAIT_AFTER_SCAN"/>
-<constant value="404" name="PS_MVMT_GO_FORWARD"/>
-<constant value="405" name="PS_MVMT_OBJECT_AVOID"/>
-<constant value="406" name="PS_MVMT_OBJECT_AVOID_TURN"/>
-<constant value="407" name="PS_MVMT_GET_BACK_ON_LINE"/>
-<constant value="408" name="PS_MVMT_GET_BACK_ON_LINE_TURN"/>
+<constant value="303" name="PS_CROSS_LINES_AVOID_WALL"/>
 <constant value="1500" name="AVOID_WALL_DISTANCE"/>
-<constant value="409" name="PS_MVMT_GO_TO_NEXT_CORNER"/>
-<constant value="410" name="PS_MVMT_FINAL_CORNER"/>
 <constant value="8" name="PS_SHOW_FINAL_COLORS"/>
-<constant value="9" name="PS_GET_AROUND_FIRST_BARCODE"/>
+<constant value="10" name="PS_TURNING"/>
+<constant value="12" name="PS_TURN_PAUSE"/>
+<constant value="101" name="PS_MVMT_OBJECT_AVOID_TURN"/>
+<constant value="102" name="PS_MVMT_OBJECT_AVOID"/>
 
 
 <!--show keywords state-->
@@ -50,10 +43,12 @@
 <!--node thymio-II-->
 <node nodeId="1" name="thymio-II">#VARIABLES
 
-var barcode_list[3] = [BC_LEFT, BC_UNINIT, BC_UNINIT] # Values of the barcodes that have been read
+var barcode_list[3] = [BC_UNINIT, BC_UNINIT, BC_UNINIT] # Values of the barcodes that have been read
 var lights[] = [0, 0, 0] # Array representing the state of the lights
 var barcode_number = 0
 var program_state = PS_STOPPED
+
+var time_to_turn = 0
 
 var prev_state = 0
 
@@ -73,10 +68,16 @@ onevent timer0
     timer_0 += 1
     prev_state = program_state
 
+onevent timer1
+	barcode_number += 1
+	timer.period[1] = 0
+	callsub decide_turn
+
 onevent button.forward
     timer_0 = 0
 
     program_state = PS_LOOK_AND_SCAN
+    # program_state = PS_SHOW_COLORS
     # program_state = PS_ALIGN_WAIT_AFTER_SCAN
     # program_state = PS_MVMT_OBJECT_AVOID
     # direction = -1
@@ -85,7 +86,10 @@ onevent button.forward
 
 # Stop the program
 onevent button.backward
-    callsub stop
+	barcode_number = 0
+	cross_line_count = 0
+	direction = 0
+	callsub stop
 
 # Directional functions
 sub forward
@@ -99,6 +103,27 @@ sub stop
     program_state = PS_STOPPED
     timer.period[0] = 0
 
+# Subroutine for handling all turning
+# The `direction` value must be set before calling this subfunction
+sub decide_turn
+	program_state = PS_TURN_PAUSE
+	
+	if barcode_number == 1 then
+		time_to_turn = 1150
+	elseif barcode_number == 2 then
+		time_to_turn = 1200
+	elseif barcode_number == 3 then
+		time_to_turn = 1200
+	end
+	
+	if barcode_number == 3 then
+		timer.period[1] = 6000
+	end
+	
+	timer_0 = 0
+	motor.left.target = 0
+	motor.right.target = 0
+
 onevent tap
 
     if program_state == PS_LOOK_AND_SCAN or program_state == PS_LINEFOLLOW_RIGHT or program_state == PS_LINEFOLLOW_LEFT then
@@ -111,22 +136,26 @@ onevent tap
 # Main logic loop
 onevent prox
 
-    # If we are looking for the barcode
-    if program_state == PS_LOOK_AND_SCAN then
-        callsub forward
+	# If we are looking for the barcode
+	if program_state == PS_LOOK_AND_SCAN then
+		callsub forward
 
-        if prox.ground.delta[0] &lt; TAPE_THRESHOLD then
-            program_state = PS_LINEFOLLOW_RIGHT
-        end
+		if prox.ground.delta[0] &lt; TAPE_THRESHOLD then
+			if barcode_number >= 4 then
+				program_state = PS_CROSS_LINES
+			else
+				program_state = PS_LINEFOLLOW_RIGHT
+			end
+		end
 
 	# Program state for backing up a bit before reading barcode
-    elseif program_state == PS_ALIGN_BACK_UP then
-    		program_state = PS_ALIGN_BARCODE
-        if timer_0 > 15 then
-            program_state = PS_ALIGN_BARCODE
-            motor.left.target = -SPEED
-            motor.right.target = SPEED
-        end
+	elseif program_state == PS_ALIGN_BACK_UP then
+		program_state = PS_ALIGN_BARCODE
+		if timer_0 > 15 then
+			program_state = PS_ALIGN_BARCODE
+			motor.left.target = -SPEED
+			motor.right.target = SPEED
+		end
 
     # Goes to left of tape
     elseif program_state == PS_ALIGN_BARCODE then
@@ -217,14 +246,9 @@ onevent prox
     		if timer_0 >= 30 then
     			timer_0 = 0
 
-    			program_state = PS_GET_AROUND_FIRST_BARCODE
+				callsub decide_turn
     		end
     		
-    elseif program_state == PS_GET_AROUND_FIRST_BARCODE then
-    		if timer_0 > 450 then
-    			program_state = PS_MVMT_OBJECT_AVOID
-    		end
-
     elseif program_state == PS_CROSS_LINES then
 
         # Basically if cross_line_count is odd, we are on the tape
@@ -244,7 +268,7 @@ onevent prox
             motor.left.target = 0
             motor.right.target = 0
         end
-        
+
       motor.left.target  = 3 * SPEED / 4 + SPEED * direction / 8
 		motor.right.target = 3 * SPEED / 4 - SPEED * direction / 8
 
@@ -271,14 +295,13 @@ onevent prox
             call leds.top(32, 32, 32)
         end
 
-    elseif program_state == PS_CROSS_LINES_AVOID_WALL then
+	elseif program_state == PS_CROSS_LINES_AVOID_WALL then
 
-
-        if cross_line_count % 2 == 0 and prox.ground.delta[0] &lt; TAPE_THRESHOLD then
-            cross_line_count += 1
-        elseif cross_line_count % 2 == 1 and prox.ground.delta[0] > TAPE_THRESHOLD then
-            cross_line_count += 1
-        end
+		if cross_line_count % 2 == 0 and prox.ground.delta[0] &lt; TAPE_THRESHOLD then
+			cross_line_count += 1
+		elseif cross_line_count % 2 == 1 and prox.ground.delta[0] > TAPE_THRESHOLD then
+			cross_line_count += 1
+		end
 		motor.left.target  = -SPEED * direction
 		motor.right.target =  SPEED * direction
 
@@ -286,27 +309,34 @@ onevent prox
 			program_state = PS_CROSS_LINES
 		end
 
-    elseif program_state == PS_SHOW_COLORS then
+	elseif program_state == PS_SHOW_COLORS then
 
-        # Stops after 5s
-        if timer_0 > 5000 then
-        		call leds.top(0, 0, 0)
-        		program_state = PS_MVMT_OBJECT_AVOID
-            callsub stop
-        end
+		motor.left.target = 0
+		motor.right.target = 0
 
-		if timer_0 % 1000 &lt; 500 then
+		# Stops after 5s
+		if timer_0 > 5000 then
+			call leds.top(0, 0, 0)
+			callsub decide_turn
+			timer_0 = 0
+			timer.period[0] = 1
+			program_state = PS_MVMT_OBJECT_AVOID
+			call sound.freq(0, 0)
+		end
+
+		if timer_0 % 1000 > 500 then
 			call leds.top(32, 0, 0)
 		else
 			call leds.top(0, 0, 0)
 		end
+		
+		call sound.freq(440, 440)
         
     elseif program_state == PS_LINEFOLLOW_LEFT then
-
-        if prox.ground.delta[0] >= TAPE_THRESHOLD then
-			program_state = PS_LINEFOLLOW_RIGHT
-			motor.left.target = SPEED
-			motor.right.target = 0
+			if prox.ground.delta[0] >= TAPE_THRESHOLD then
+				program_state = PS_LINEFOLLOW_RIGHT
+				motor.left.target = SPEED
+				motor.right.target = 0
         end
         if prox.horizontal[2] > BARCODE_READ_DISTANCE then
             program_state = PS_ALIGN_BARCODE
@@ -314,83 +344,46 @@ onevent prox
             motor.right.target = SPEED
         end
 
-    elseif program_state == PS_LINEFOLLOW_RIGHT then
-	    	if prox.ground.delta[0] &lt; TAPE_THRESHOLD then	
-	        program_state = PS_LINEFOLLOW_LEFT
-	        motor.left.target = 0
-	        motor.right.target = SPEED
-	    	end
-        if prox.horizontal[2] > BARCODE_READ_DISTANCE then
-            program_state = PS_ALIGN_BARCODE
-            motor.left.target = -SPEED
-            motor.right.target = SPEED
-        end
-
-	elseif program_state == PS_MVMT_HIT_CORNER then
-	
-		if barcode_list[0] == BC_RIGHT then
-			motor.left.target  =  SPEED
-			motor.right.target = -SPEED
-		elseif barcode_list[0] == BC_LEFT then
-			motor.left.target  = -SPEED
-			motor.right.target =  SPEED
-		else
-			# If this gets called, we done f---ed up
-			callsub stop
+	elseif program_state == PS_LINEFOLLOW_RIGHT then
+		if prox.ground.delta[0] &lt; TAPE_THRESHOLD then	
+			program_state = PS_LINEFOLLOW_LEFT
+			motor.left.target = 0
+			motor.right.target = SPEED
 		end
-			
-		if timer_0 > HIT_CORNER_TURN_AMOUNT then
-			program_state = PS_MVMT_GO_FORWARD
-		end
-	
-	# This is for turning after reading the second barcode
-	elseif program_state == PS_MVMT_GO_TO_NEXT_CORNER then
-
-		if barcode_list[0] == BC_RIGHT then
-			motor.left.target  = -SPEED
-			motor.right.target =  SPEED
-		elseif barcode_list[0] == BC_LEFT then
-			motor.left.target  =  SPEED
-			motor.right.target = -SPEED
-		else
-			# If this gets called, we done f---ed up
-			callsub stop
+		if prox.horizontal[2] > BARCODE_READ_DISTANCE then
+			program_state = PS_ALIGN_BARCODE
+			motor.left.target = -SPEED
+			motor.right.target = SPEED
 		end
 
-		if timer_0 > HIT_CORNER_TURN_AMOUNT / 2 then
-			program_state = PS_MVMT_GO_FORWARD
+	elseif program_state == PS_TURN_PAUSE then
+		if timer_0 > 25 then
+
+			if barcode_number == 1 or barcode_number == 4 then
+				motor.left.target = SPEED * direction
+				motor.right.target = -SPEED * direction
+			elseif barcode_number == 2 or barcode_number == 3 then
+				motor.left.target = -SPEED * direction
+				motor.right.target = SPEED * direction
+			end
+			program_state = PS_TURNING			
 		end
 
-	# Program state for going forward until it sees a wall
-	elseif program_state == PS_MVMT_GO_FORWARD then
-		motor.left.target = 3 * SPEED / 4 + SPEED * direction / 4
-		motor.left.target = 3 * SPEED / 4 - SPEED * direction / 4
-		if prox.horizontal[2] > AVOID_WALL_DISTANCE then
-			program_state = PS_MVMT_OBJECT_AVOID
+	elseif program_state == PS_TURNING then
+		if timer_0 > time_to_turn then
+			program_state = PS_LOOK_AND_SCAN
 		end
+
 
 	elseif program_state == PS_MVMT_OBJECT_AVOID then
 	
 		motor.left.target  = 3 * SPEED / 4 + SPEED * direction / 4
 		motor.right.target = 3 * SPEED / 4 - SPEED * direction / 4
 		
-		if prox.ground.delta[0] &lt; TAPE_THRESHOLD then
-			program_state = PS_MVMT_GET_BACK_ON_LINE
-			timer_0 = 0
-			# Here we need to decide if we are getting back on the line or
-			# Crossing over the lines (like the last part)
-			if barcode_number == 3 then
-				program_state = PS_CROSS_LINES
-				if barcode_list[1] == BC_LEFT then
-					direction = -1
-				elseif barcode_list[1] == BC_RIGHT then
-					direction = 1
-				else
-					callsub stop
-				end
-			else
-
-			end
+		if timer_0 > 32000 then
+			motor.left.target = 0
+			motor.right.target = 0
+			program_state = PS_SHOW_FINAL_COLORS
 		end
 
 		# 4 * ((-1 + 1) / 2) = 0 (Sensor 0 on direction = left)
@@ -398,55 +391,17 @@ onevent prox
 		if prox.horizontal[4 * ((direction + 1) / 2)] > AVOID_WALL_DISTANCE or prox.horizontal[2] > AVOID_WALL_DISTANCE then
 			program_state = PS_MVMT_OBJECT_AVOID_TURN
 		end
-	
+
 	elseif program_state == PS_MVMT_OBJECT_AVOID_TURN then
-		program_state = PS_MVMT_GET_BACK_ON_LINE
-		timer_0 = 0
 
-		if prox.ground.delta[0] &lt; TAPE_THRESHOLD then
-			# Here we need to decide if we are getting back on the line or
-			# Crossing over the lines (like the last part)
-			if barcode_number == 3 then
-				program_state = PS_CROSS_LINES
-				if barcode_list[1] == BC_LEFT then
-					direction = -1
-				elseif barcode_list[1] == BC_RIGHT then
-					direction = 1
-				else
-					callsub stop
-				end
-			else
-				program_state = PS_MVMT_GET_BACK_ON_LINE
-				timer_0 = 0
-			end
-		end
-
-		motor.left.target  = -SPEED * direction
-		motor.right.target =  SPEED * direction
+		motor.left.target  = SPEED / 2 - SPEED * direction / 2
+		motor.right.target =  SPEED / 2 + SPEED * direction / 2
 
 		# I was feeling quirky uwu
 		if prox.horizontal[4 * ((direction + 1) / 2)] &lt; AVOID_WALL_DISTANCE or prox.horizontal[2] &lt; AVOID_WALL_DISTANCE then
 			program_state = PS_MVMT_OBJECT_AVOID
-		end	
-
-	elseif program_state == PS_MVMT_GET_BACK_ON_LINE then
-		motor.left.target = SPEED
-		motor.right.target = SPEED
-		if timer_0 > 75 then
-			program_state = PS_MVMT_GET_BACK_ON_LINE_TURN
 		end
-	
-	elseif program_state == PS_MVMT_GET_BACK_ON_LINE_TURN then
-		motor.left.target  =  SPEED * direction
-		motor.right.target = -SPEED * direction
-		if prox.ground.delta[(direction + 1) / 2] &lt; TAPE_THRESHOLD or prox.horizontal[2] &lt; AVOID_WALL_DISTANCE then
-			if direction == 1 then
-					program_state = PS_LINEFOLLOW_RIGHT
-				else
-				program_state = PS_LINEFOLLOW_LEFT
-			end
-		end
-    end
+	end
 </node>
 
 
