@@ -11,7 +11,7 @@
 <constant value="1" name="BC_LEFT"/>
 <constant value="2" name="BC_RIGHT"/>
 <constant value="3" name="BC_DEAD"/>
-<constant value="300" name="SPEED"/>
+<constant value="200" name="SPEED"/>
 <constant value="4000" name="BARCODE_READ_COLOR_THRESHOLD"/>
 <constant value="3000" name="BARCODE_READ_DISTANCE"/>
 <constant value="0" name="PS_STOPPED"/>
@@ -36,7 +36,7 @@
 <constant value="406" name="PS_MVMT_OBJECT_AVOID_TURN"/>
 <constant value="407" name="PS_MVMT_GET_BACK_ON_LINE"/>
 <constant value="408" name="PS_MVMT_GET_BACK_ON_LINE_TURN"/>
-<constant value="1250" name="AVOID_WALL_DISTANCE"/>
+<constant value="1500" name="AVOID_WALL_DISTANCE"/>
 <constant value="409" name="PS_MVMT_GO_TO_NEXT_CORNER"/>
 <constant value="410" name="PS_MVMT_FINAL_CORNER"/>
 <constant value="8" name="PS_SHOW_FINAL_COLORS"/>
@@ -50,7 +50,7 @@
 <!--node thymio-II-->
 <node nodeId="1" name="thymio-II">#VARIABLES
 
-var barcode_list[3] = [BC_UNINIT, BC_UNINIT, BC_UNINIT] # Values of the barcodes that have been read
+var barcode_list[3] = [BC_LEFT, BC_UNINIT, BC_UNINIT] # Values of the barcodes that have been read
 var lights[] = [0, 0, 0] # Array representing the state of the lights
 var barcode_number = 0
 var program_state = PS_STOPPED
@@ -191,13 +191,13 @@ onevent prox
             end
             
             if barcode_number == 0 then
-				if barcode_list[0] == BC_LEFT then
-					direction = -1
-				elseif barcode_list[0] == BC_RIGHT then
-					direction = 1
-				else
-					callsub stop
-				end
+					if barcode_list[0] == BC_LEFT then
+						direction = -1
+					elseif barcode_list[0] == BC_RIGHT then
+						direction = 1
+					else
+						callsub stop
+					end
             end
 
             barcode_number ++
@@ -245,8 +245,8 @@ onevent prox
             motor.right.target = 0
         end
         
-        motor.left.target  = 3 * SPEED / 4 + SPEED * direction / 6
-		motor.right.target = 3 * SPEED / 4 - SPEED * direction / 6
+      motor.left.target  = 3 * SPEED / 4 + SPEED * direction / 8
+		motor.right.target = 3 * SPEED / 4 - SPEED * direction / 8
 
 		if prox.horizontal[4 * ((direction + 1) / 2)] > AVOID_WALL_DISTANCE then
 			program_state = PS_CROSS_LINES_AVOID_WALL
