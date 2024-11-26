@@ -123,9 +123,9 @@ sub decide_turn
 	if direction == -1 then
 	
 		if barcode_number == 1 then
-			time_to_turn = 1200
+			time_to_turn = 1100
 		elseif barcode_number == 2 then
-			time_to_turn = 1300
+			time_to_turn = 1400
 		elseif barcode_number == 3 then
 			time_to_turn = 1200
 		end
@@ -140,7 +140,11 @@ sub decide_turn
 	end
 				
 	if barcode_number == 3 then
-		timer.period[1] = 6000
+		if barcode_list[0] == barcode_list[1] then
+			timer.period[1] = 6000
+		else
+			timer.period[1] = 7000
+		end
 	end
 	
 	timer_0 = 0
@@ -306,6 +310,11 @@ onevent prox
             timer_0 = 0
             motor.left.target = 0
             motor.right.target = 0
+            if barcode_list[1] == BC_LEFT then
+            	direction = -1
+            else
+            	direction = 1
+            end
         end
 
       motor.left.target  = 3 * SPEED / 4 + SPEED * direction / 8
