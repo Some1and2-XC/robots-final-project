@@ -103,6 +103,18 @@ sub stop
     program_state = PS_STOPPED
     timer.period[0] = 0
 
+sub light_final_colors
+
+	if barcode_list[2] == BC_LEFT then
+		call leds.top(32, 0, 0)
+	elseif barcode_list[2] == BC_RIGHT then
+		call leds.top(0, 32, 0)
+	elseif barcode_list[2] == BC_BLACK_WHITE_BLACK then
+		call leds.top(0, 0, 32)
+	else
+		call leds.top(0, 0, 32) # Fallback color
+	end
+
 # Subroutine for handling all turning
 # The `direction` value must be set before calling this subfunction
 sub decide_turn
@@ -248,6 +260,8 @@ onevent prox
 						call leds.circle(0, 0, 32, 0, 0, 0, 0, 0)
             	end
             	call sound.freq(440, 440)
+            elseif barcode_number == 2 then
+	            callsub light_final_colors
             end
 
             barcode_number ++
@@ -269,7 +283,7 @@ onevent prox
 
 				call leds.circle(0, 0, 0, 0, 0, 0, 0, 0)
 				call sound.freq(0, 0)
-
+				call leds.top(0, 0, 0)
 
 				callsub decide_turn
     		end
@@ -309,16 +323,7 @@ onevent prox
         end
         
         callsub stop
-
-        if barcode_list[2] == BC_LEFT then
-            call leds.top(32, 0, 0)
-        elseif barcode_list[2] == BC_RIGHT then
-            call leds.top(0, 32, 0)
-        elseif barcode_list[2] == BC_BLACK_WHITE_BLACK then
-            call leds.top(0, 0, 32)
-        else
-            call leds.top(0, 0, 32) # Fallback color
-        end
+        callsub light_final_colors
 
 	elseif program_state == PS_CROSS_LINES_AVOID_WALL then
 
