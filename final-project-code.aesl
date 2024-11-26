@@ -108,14 +108,25 @@ sub stop
 sub decide_turn
 	program_state = PS_TURN_PAUSE
 	
-	if barcode_number == 1 then
-		time_to_turn = 1200
-	elseif barcode_number == 2 then
-		time_to_turn = 1300
-	elseif barcode_number == 3 then
-		time_to_turn = 1200
-	end
+	if direction == -1 then
 	
+		if barcode_number == 1 then
+			time_to_turn = 1200
+		elseif barcode_number == 2 then
+			time_to_turn = 1300
+		elseif barcode_number == 3 then
+			time_to_turn = 1200
+		end
+	else
+		if barcode_number == 1 then
+			time_to_turn = 1350
+		elseif barcode_number == 2 then
+			time_to_turn = 1200
+		elseif barcode_number == 3 then
+			time_to_turn = 1200
+		end
+	end
+				
 	if barcode_number == 3 then
 		timer.period[1] = 6000
 	end
@@ -228,6 +239,16 @@ onevent prox
 						callsub stop
 					end
             end
+            
+            # Light up the lights if it is the first or second bc
+            if barcode_number == 0 or barcode_number == 1 then
+            	if barcode_list[barcode_number] == BC_LEFT then
+						call leds.circle(0, 0, 0, 0, 0, 0, 32, 0)
+					else
+						call leds.circle(0, 0, 32, 0, 0, 0, 0, 0)
+            	end
+            	call sound.freq(440, 440)
+            end
 
             barcode_number ++
             program_state = PS_ALIGN_WAIT_AFTER_SCAN
@@ -245,6 +266,10 @@ onevent prox
     		motor.right.target = -SPEED * direction
     		if timer_0 >= 30 then
     			timer_0 = 0
+
+				call leds.circle(0, 0, 0, 0, 0, 0, 0, 0)
+				call sound.freq(0, 0)
+
 
 				callsub decide_turn
     		end
@@ -292,7 +317,7 @@ onevent prox
         elseif barcode_list[2] == BC_BLACK_WHITE_BLACK then
             call leds.top(0, 0, 32)
         else
-            call leds.top(32, 32, 32)
+            call leds.top(0, 0, 32) # Fallback color
         end
 
 	elseif program_state == PS_CROSS_LINES_AVOID_WALL then
@@ -380,7 +405,7 @@ onevent prox
 		motor.left.target  = 3 * SPEED / 4 + SPEED * direction / 8
 		motor.right.target = 3 * SPEED / 4 - SPEED * direction / 8
 
-		if timer_0 > 32000 then
+		if timer_0 > 30000 then
 			motor.left.target = 0
 			motor.right.target = 0
 			program_state = PS_SHOW_FINAL_COLORS
