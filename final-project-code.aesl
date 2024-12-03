@@ -273,6 +273,7 @@ onevent prox
 			timer_0 = 0
 		end
 
+	# State for clearing leds and sounds after brief interval
 	elseif program_state == PS_ALIGN_WAIT_AFTER_SCAN then
 			if barcode_list[0] == BC_LEFT then
 				direction = -1
@@ -292,6 +293,7 @@ onevent prox
 				callsub decide_turn
 			end
 
+	# State for crossing and counting horizontal lines
 	elseif program_state == PS_CROSS_LINES then
 
 		# Basically if cross_line_count is odd, we are on the tape
@@ -324,6 +326,7 @@ onevent prox
 			program_state = PS_CROSS_LINES_AVOID_WALL
 		end
 
+	# State for showing the final colors at the end of the course
 	elseif program_state == PS_SHOW_FINAL_COLORS then
 
 		# Stops after 5s
@@ -334,6 +337,7 @@ onevent prox
 		callsub stop
 		callsub light_final_colors
 
+	# State for avoiding the wall while crossing horizontal lines
 	elseif program_state == PS_CROSS_LINES_AVOID_WALL then
 
 		if cross_line_count % 2 == 0 and prox.ground.delta[0] &lt; TAPE_THRESHOLD then
@@ -348,6 +352,7 @@ onevent prox
 			program_state = PS_CROSS_LINES
 		end
 
+	# State for showing colors after crossing the horizontal lines
 	elseif program_state == PS_SHOW_COLORS then
 
 		motor.left.target = 0
@@ -371,6 +376,7 @@ onevent prox
 
 		call sound.freq(440, 440)
 
+	# The left line follow state
 	elseif program_state == PS_LINEFOLLOW_LEFT then
 			if prox.ground.delta[0] >= TAPE_THRESHOLD then
 				program_state = PS_LINEFOLLOW_RIGHT
@@ -383,6 +389,7 @@ onevent prox
 			motor.right.target = SPEED
 		end
 
+	# The right line follow state
 	elseif program_state == PS_LINEFOLLOW_RIGHT then
 		if prox.ground.delta[0] &lt; TAPE_THRESHOLD then
 			program_state = PS_LINEFOLLOW_LEFT
@@ -395,6 +402,7 @@ onevent prox
 			motor.right.target = SPEED
 		end
 
+	# State for pausing before turning
 	elseif program_state == PS_TURN_PAUSE then
 		if timer_0 > 25 then
 
@@ -408,12 +416,13 @@ onevent prox
 			program_state = PS_TURNING
 		end
 
+	# State for turning a set amount of time in a set direction
 	elseif program_state == PS_TURNING then
 		if timer_0 > time_to_turn then
 			program_state = PS_LOOK_AND_SCAN
 		end
 
-
+	# The object avoid state for the end of the course
 	elseif program_state == PS_MVMT_OBJECT_AVOID then
 
 		motor.left.target  = 3 * SPEED / 4 + SPEED * direction / 8
@@ -431,6 +440,7 @@ onevent prox
 			program_state = PS_MVMT_OBJECT_AVOID_TURN
 		end
 
+	# The object avoid state for turning instead of running into walls
 	elseif program_state == PS_MVMT_OBJECT_AVOID_TURN then
 
 		motor.left.target = - SPEED * direction
