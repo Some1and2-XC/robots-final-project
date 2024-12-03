@@ -65,8 +65,8 @@ timer.period[0] = 1
 callsub stop
 
 onevent timer0
-    timer_0 += 1
-    prev_state = program_state
+	timer_0 += 1
+	prev_state = program_state
 
 onevent timer1
 	barcode_number += 1
@@ -74,15 +74,15 @@ onevent timer1
 	callsub decide_turn
 
 onevent button.forward
-    timer_0 = 0
+	timer_0 = 0
 
-    program_state = PS_LOOK_AND_SCAN
-    # program_state = PS_SHOW_COLORS
-    # program_state = PS_ALIGN_WAIT_AFTER_SCAN
-    # program_state = PS_MVMT_OBJECT_AVOID
-    # direction = -1
-    # barcode_number = 1
-    callsub forward
+	program_state = PS_LOOK_AND_SCAN
+	# program_state = PS_SHOW_COLORS
+	# program_state = PS_ALIGN_WAIT_AFTER_SCAN
+	# program_state = PS_MVMT_OBJECT_AVOID
+	# direction = -1
+	# barcode_number = 1
+	callsub forward
 
 # Stop the program
 onevent button.backward
@@ -93,15 +93,15 @@ onevent button.backward
 
 # Directional functions
 sub forward
-    motor.left.target = SPEED
-    motor.right.target = SPEED
-    timer.period[0] = 1
+	motor.left.target = SPEED
+	motor.right.target = SPEED
+	timer.period[0] = 1
 
 sub stop
-    motor.left.target = 0
-    motor.right.target = 0
-    program_state = PS_STOPPED
-    timer.period[0] = 0
+	motor.left.target = 0
+	motor.right.target = 0
+	program_state = PS_STOPPED
+	timer.period[0] = 0
 
 sub light_final_colors
 
@@ -119,9 +119,9 @@ sub light_final_colors
 # The `direction` value must be set before calling this subfunction
 sub decide_turn
 	program_state = PS_TURN_PAUSE
-	
+
 	if direction == -1 then
-	
+
 		if barcode_number == 1 then
 			time_to_turn = 1100
 		elseif barcode_number == 2 then
@@ -138,7 +138,7 @@ sub decide_turn
 			time_to_turn = 1200
 		end
 	end
-				
+
 	if barcode_number == 3 then
 		if barcode_list[0] == barcode_list[1] then
 			timer.period[1] = 6000
@@ -146,19 +146,19 @@ sub decide_turn
 			timer.period[1] = 7000
 		end
 	end
-	
+
 	timer_0 = 0
 	motor.left.target = 0
 	motor.right.target = 0
 
 onevent tap
 
-    if program_state == PS_LOOK_AND_SCAN or program_state == PS_LINEFOLLOW_RIGHT or program_state == PS_LINEFOLLOW_LEFT then
-        program_state = PS_ALIGN_BACK_UP
-        timer_0 = 0
-        motor.left.target = -SPEED
-        motor.right.target = -SPEED
-    end
+	if program_state == PS_LOOK_AND_SCAN or program_state == PS_LINEFOLLOW_RIGHT or program_state == PS_LINEFOLLOW_LEFT then
+		program_state = PS_ALIGN_BACK_UP
+		timer_0 = 0
+		motor.left.target = -SPEED
+		motor.right.target = -SPEED
+	end
 
 # Main logic loop
 onevent prox
@@ -184,69 +184,69 @@ onevent prox
 			motor.right.target = SPEED
 		end
 
-    # Goes to left of tape
-    elseif program_state == PS_ALIGN_BARCODE then
+	# Goes to left of tape
+	elseif program_state == PS_ALIGN_BARCODE then
 
-        if prox.ground.delta[0] &lt; TAPE_THRESHOLD then
-            motor.left.target = -SPEED
-            motor.right.target = SPEED
-        else
-            program_state = PS_ALIGN_BARCODE_RIGHT
-            motor.left.target = SPEED
-            motor.right.target = -SPEED
-            timer_0 = 0
-        end
+		if prox.ground.delta[0] &lt; TAPE_THRESHOLD then
+			motor.left.target = -SPEED
+			motor.right.target = SPEED
+		else
+			program_state = PS_ALIGN_BARCODE_RIGHT
+			motor.left.target = SPEED
+			motor.right.target = -SPEED
+			timer_0 = 0
+		end
 
-    # Goes to right of tape (and times it)
-    elseif program_state == PS_ALIGN_BARCODE_RIGHT then
-        if prox.ground.delta[1] > TAPE_THRESHOLD then
-            timer_target = timer_0 / 2
-            timer_0 = 0
-            motor.left.target = -SPEED
-            motor.right.target = SPEED
-            program_state = PS_ALIGN_BARCODE_SCAN
-        end
+	# Goes to right of tape (and times it)
+	elseif program_state == PS_ALIGN_BARCODE_RIGHT then
+		if prox.ground.delta[1] > TAPE_THRESHOLD then
+			timer_target = timer_0 / 2
+			timer_0 = 0
+			motor.left.target = -SPEED
+			motor.right.target = SPEED
+			program_state = PS_ALIGN_BARCODE_SCAN
+		end
 
-    # Goes half way back and scans barcode
-    elseif program_state == PS_ALIGN_BARCODE_SCAN then
-        # Checks if the timer expired (the timer for probably being in the middle)
-        # 50 is a constant just for consistency
-        if timer_0 > timer_target - 50 then
-            # Here is where we read the barcode
+	# Goes half way back and scans barcode
+	elseif program_state == PS_ALIGN_BARCODE_SCAN then
+		# Checks if the timer expired (the timer for probably being in the middle)
+		# 50 is a constant just for consistency
+		if timer_0 > timer_target - 50 then
+			# Here is where we read the barcode
 
-            # Sets tmp_color to the barcode currently being read
-            if prox.horizontal[1] > BARCODE_READ_COLOR_THRESHOLD then
-                tmp_color[0] = 1
-            else
-                tmp_color[0] = 0
-            end
+			# Sets tmp_color to the barcode currently being read
+			if prox.horizontal[1] > BARCODE_READ_COLOR_THRESHOLD then
+				tmp_color[0] = 1
+			else
+				tmp_color[0] = 0
+			end
 
-            if prox.horizontal[2] > BARCODE_READ_COLOR_THRESHOLD then
-                tmp_color[1] = 1
-            else
-                tmp_color[1] = 0
-            end
+			if prox.horizontal[2] > BARCODE_READ_COLOR_THRESHOLD then
+				tmp_color[1] = 1
+			else
+				tmp_color[1] = 0
+			end
 
-            if prox.horizontal[3] > BARCODE_READ_COLOR_THRESHOLD then
-                tmp_color[2] = 1
-            else
-                tmp_color[2] = 0
-            end
+			if prox.horizontal[3] > BARCODE_READ_COLOR_THRESHOLD then
+				tmp_color[2] = 1
+			else
+				tmp_color[2] = 0
+			end
 
-            # Decodes the barcode
-            if tmp_color[0] == 1 and tmp_color[1] == 0 and tmp_color[2] == 0 then
-                barcode_list[barcode_number] = BC_LEFT
-            elseif tmp_color[0] == 0 and tmp_color[1] == 0 and tmp_color[2] == 1 then
-                barcode_list[barcode_number] = BC_RIGHT
-            elseif tmp_color[0] == 1 and tmp_color[1] == 0 and tmp_color[2] == 1 then
-                barcode_list[barcode_number] = BC_DEAD
-            elseif tmp_color[0] == 0 and tmp_color[1] == 1 and tmp_color[2] == 0 then
-                barcode_list[barcode_number] = BC_BLACK_WHITE_BLACK
-            else
-                barcode_list[barcode_number] = BC_ERROR
-            end
-            
-            if barcode_number == 0 then
+			# Decodes the barcode
+			if tmp_color[0] == 1 and tmp_color[1] == 0 and tmp_color[2] == 0 then
+				barcode_list[barcode_number] = BC_LEFT
+			elseif tmp_color[0] == 0 and tmp_color[1] == 0 and tmp_color[2] == 1 then
+				barcode_list[barcode_number] = BC_RIGHT
+			elseif tmp_color[0] == 1 and tmp_color[1] == 0 and tmp_color[2] == 1 then
+				barcode_list[barcode_number] = BC_DEAD
+			elseif tmp_color[0] == 0 and tmp_color[1] == 1 and tmp_color[2] == 0 then
+				barcode_list[barcode_number] = BC_BLACK_WHITE_BLACK
+			else
+				barcode_list[barcode_number] = BC_ERROR
+			end
+
+			if barcode_number == 0 then
 					if barcode_list[0] == BC_LEFT then
 						direction = -1
 					elseif barcode_list[0] == BC_RIGHT then
@@ -254,85 +254,85 @@ onevent prox
 					else
 						callsub stop
 					end
-            end
-            
-            # Light up the lights if it is the first or second bc
-            if barcode_number == 0 or barcode_number == 1 then
-            	if barcode_list[barcode_number] == BC_LEFT then
-						call leds.circle(0, 0, 0, 0, 0, 0, 32, 0)
-					else
-						call leds.circle(0, 0, 32, 0, 0, 0, 0, 0)
-            	end
-            	call sound.freq(440, 440)
-            elseif barcode_number == 2 then
-	            callsub light_final_colors
-            end
+			end
 
-            barcode_number ++
-            program_state = PS_ALIGN_WAIT_AFTER_SCAN
-            timer_0 = 0
-        end
+			# Light up the lights if it is the first or second bc
+			if barcode_number == 0 or barcode_number == 1 then
+				if barcode_list[barcode_number] == BC_LEFT then
+					call leds.circle(0, 0, 0, 0, 0, 0, 32, 0)
+				else
+					call leds.circle(0, 0, 32, 0, 0, 0, 0, 0)
+				end
+				call sound.freq(440, 440)
+			elseif barcode_number == 2 then
+				callsub light_final_colors
+			end
 
-    elseif program_state == PS_ALIGN_WAIT_AFTER_SCAN then
-    		if barcode_list[0] == BC_LEFT then
-    			direction = -1
-    		else
-    			direction = 1
-    		end
-    		timer.period[0] = 1
-    		motor.left.target =   SPEED * direction
-    		motor.right.target = -SPEED * direction
-    		if timer_0 >= 30 then
-    			timer_0 = 0
+			barcode_number ++
+			program_state = PS_ALIGN_WAIT_AFTER_SCAN
+			timer_0 = 0
+		end
+
+	elseif program_state == PS_ALIGN_WAIT_AFTER_SCAN then
+			if barcode_list[0] == BC_LEFT then
+				direction = -1
+			else
+				direction = 1
+			end
+			timer.period[0] = 1
+			motor.left.target =   SPEED * direction
+			motor.right.target = -SPEED * direction
+			if timer_0 >= 30 then
+				timer_0 = 0
 
 				call leds.circle(0, 0, 0, 0, 0, 0, 0, 0)
 				call sound.freq(0, 0)
 				call leds.top(0, 0, 0)
 
 				callsub decide_turn
-    		end
-    		
-    elseif program_state == PS_CROSS_LINES then
+			end
 
-        # Basically if cross_line_count is odd, we are on the tape
-        # If it is even, then we are off the tape.
-        # This way everything can be done without extra variables and can be handled in a simple way.
+	elseif program_state == PS_CROSS_LINES then
 
-        if cross_line_count % 2 == 0 and prox.ground.delta[0] &lt; TAPE_THRESHOLD then
-            cross_line_count += 1
-        elseif cross_line_count % 2 == 1 and prox.ground.delta[0] > TAPE_THRESHOLD then
-            cross_line_count += 1
-        end
+		# Basically if cross_line_count is odd, we are on the tape
+		# If it is even, then we are off the tape.
+		# This way everything can be done without extra variables and can be handled in a simple way.
 
-        if cross_line_count >= 6 then
-            program_state = PS_SHOW_COLORS
+		if cross_line_count % 2 == 0 and prox.ground.delta[0] &lt; TAPE_THRESHOLD then
+			cross_line_count += 1
+		elseif cross_line_count % 2 == 1 and prox.ground.delta[0] > TAPE_THRESHOLD then
+			cross_line_count += 1
+		end
 
-            timer_0 = 0
-            motor.left.target = 0
-            motor.right.target = 0
-            if barcode_list[1] == BC_LEFT then
-            	direction = -1
-            else
-            	direction = 1
-            end
-        end
+		if cross_line_count >= 6 then
+			program_state = PS_SHOW_COLORS
 
-      motor.left.target  = 3 * SPEED / 4 + SPEED * direction / 8
+			timer_0 = 0
+			motor.left.target = 0
+			motor.right.target = 0
+			if barcode_list[1] == BC_LEFT then
+				direction = -1
+			else
+				direction = 1
+			end
+		end
+
+		motor.left.target  = 3 * SPEED / 4 + SPEED * direction / 8
 		motor.right.target = 3 * SPEED / 4 - SPEED * direction / 8
 
 		if prox.horizontal[4 * ((direction + 1) / 2)] > AVOID_WALL_DISTANCE then
 			program_state = PS_CROSS_LINES_AVOID_WALL
 		end
 
-    elseif program_state == PS_SHOW_FINAL_COLORS then
+	elseif program_state == PS_SHOW_FINAL_COLORS then
 
-        # Stops after 5s
-        if timer_0 > 2000 then
-            callsub stop
-        end
-        
-        callsub stop
-        callsub light_final_colors
+		# Stops after 5s
+		if timer_0 > 2000 then
+			callsub stop
+		end
+
+		callsub stop
+		callsub light_final_colors
 
 	elseif program_state == PS_CROSS_LINES_AVOID_WALL then
 
@@ -368,23 +368,23 @@ onevent prox
 		else
 			call leds.top(0, 0, 0)
 		end
-		
+
 		call sound.freq(440, 440)
-        
-    elseif program_state == PS_LINEFOLLOW_LEFT then
+
+	elseif program_state == PS_LINEFOLLOW_LEFT then
 			if prox.ground.delta[0] >= TAPE_THRESHOLD then
 				program_state = PS_LINEFOLLOW_RIGHT
 				motor.left.target = SPEED
 				motor.right.target = 0
-        end
-        if prox.horizontal[2] > BARCODE_READ_DISTANCE then
-            program_state = PS_ALIGN_BARCODE
-            motor.left.target = -SPEED
-            motor.right.target = SPEED
-        end
+		end
+		if prox.horizontal[2] > BARCODE_READ_DISTANCE then
+			program_state = PS_ALIGN_BARCODE
+			motor.left.target = -SPEED
+			motor.right.target = SPEED
+		end
 
 	elseif program_state == PS_LINEFOLLOW_RIGHT then
-		if prox.ground.delta[0] &lt; TAPE_THRESHOLD then	
+		if prox.ground.delta[0] &lt; TAPE_THRESHOLD then
 			program_state = PS_LINEFOLLOW_LEFT
 			motor.left.target = 0
 			motor.right.target = SPEED
@@ -405,7 +405,7 @@ onevent prox
 				motor.left.target = -SPEED * direction
 				motor.right.target = SPEED * direction
 			end
-			program_state = PS_TURNING			
+			program_state = PS_TURNING
 		end
 
 	elseif program_state == PS_TURNING then
@@ -415,7 +415,7 @@ onevent prox
 
 
 	elseif program_state == PS_MVMT_OBJECT_AVOID then
-	
+
 		motor.left.target  = 3 * SPEED / 4 + SPEED * direction / 8
 		motor.right.target = 3 * SPEED / 4 - SPEED * direction / 8
 
