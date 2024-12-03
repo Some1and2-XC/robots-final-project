@@ -64,15 +64,18 @@ timer.period[0] = 1
 
 callsub stop
 
+# Event handler for timer0
 onevent timer0
 	timer_0 += 1
 	prev_state = program_state
 
+# Event handler for timer1
 onevent timer1
 	barcode_number += 1
 	timer.period[1] = 0
 	callsub decide_turn
 
+# Event handler for starting the program
 onevent button.forward
 	timer_0 = 0
 
@@ -97,12 +100,14 @@ sub forward
 	motor.right.target = SPEED
 	timer.period[0] = 1
 
+# Subroutine for stopping the robot
 sub stop
 	motor.left.target = 0
 	motor.right.target = 0
 	program_state = PS_STOPPED
 	timer.period[0] = 0
 
+# Subroutine for deciding the lights to flash
 sub light_final_colors
 
 	if barcode_list[2] == BC_LEFT then
@@ -151,8 +156,10 @@ sub decide_turn
 	motor.left.target = 0
 	motor.right.target = 0
 
+# Event handler for hitting into a wall
 onevent tap
 
+	# We check the state because we don't want unexpected behaviour
 	if program_state == PS_LOOK_AND_SCAN or program_state == PS_LINEFOLLOW_RIGHT or program_state == PS_LINEFOLLOW_LEFT then
 		program_state = PS_ALIGN_BACK_UP
 		timer_0 = 0
